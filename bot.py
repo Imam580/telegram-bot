@@ -4,13 +4,11 @@ from telegram import Update, ChatPermissions
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters as tg_filters
 
-# --- Token ---
 load_dotenv()
 TOKEN = os.environ.get("TOKEN")
 
-# --- Filtreler ---
+# --- Tüm filtreler ve linkler ---
 filters_dict = {
-    # urllink.me
     "mekanbahis": "urllink.me/mekanbahis", "betnosa": "urllink.me/betnosa", "babilbet": "urllink.me/babilbet",
     "casibom": "urllink.me/casibom", "lordpalace": "urllink.me/lordpalace", "betwinner": "urllink.me/betwinner",
     "winwin": "urllink.me/winwin", "melbet": "urllink.me/melbet", "grbets": "urllink.me/grbets",
@@ -18,7 +16,6 @@ filters_dict = {
     "solobet": "urllink.me/solobet", "betorspin": "urllink.me/betorspin", "antikbet": "urllink.me/antikbet",
     "supertotobet": "urllink.me/supertotobet", "888starz": "urllink.me/888starz", "1king": "urllink.me/1king",
     "mariobet": "urllink.me/mariobet",
-    # shoort.in
     "betkom": "shoort.in/betkom", "dodobet": "shoort.in/dodo", "xbahis": "shoort.in/xbahis",
     "mariobonus": "shoort.in/mariobonus", "tarafbet": "shoort.in/tarafbet", "egebet": "shoort.in/egebet",
     "goldenbahis": "shoort.in/goldenbahis", "betigma": "shoort.in/betigma", "nerobet": "shoort.in/nerobet",
@@ -67,7 +64,7 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         return False
 
-# --- /filter komutları ---
+# --- /filter komutu ---
 async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Bu komutu sadece yönetici kullanabilir!")
@@ -80,26 +77,31 @@ async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     filters_dict[site_ismi] = site_linki
     await update.message.reply_text(f"✅ Filtre eklendi: {site_ismi} → {site_linki}")
 
-async def list_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not filters_dict:
-        await update.message.reply_text("❌ Henüz filtre yok.")
+# --- /filtre komutu ---
+async def show_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
-    mesaj = "🔹 Mevcut filtreler:\n" + "\n".join([f"{k} → {v}" for k,v in filters_dict.items()])
-    await update.message.reply_text(mesaj)
+    if not filters_dict:
+        await update.message.reply_text("❌ Filtre yok!")
+        return
+    msg = "\n".join([f"{k} → {v}" for k, v in filters_dict.items()])
+    await update.message.reply_text(f"🔹 Filtreler:\n{msg}")
 
+# --- /remove filters ---
 async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
-        await update.message.reply_text("❌ Bu komutu sadece yönetici kullanabilir!")
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
     if not context.args:
-        await update.message.reply_text("Kullanım: /remove <site_ismi>")
+        await update.message.reply_text("Kullanım: /remove filters <site_ismi>")
         return
     site_ismi = context.args[0].lower()
     if site_ismi in filters_dict:
-        filters_dict.pop(site_ismi)
-        await update.message.reply_text(f"✅ Filtre kaldırıldı: {site_ismi}")
+        del filters_dict[site_ismi]
+        await update.message.reply_text(f"✅ {site_ismi} filtresi kaldırıldı!")
     else:
-        await update.message.reply_text("❌ Böyle bir filtre yok.")
+        await update.message.reply_text(f"❌ {site_ismi} filtresi bulunamadı!")
 
 # --- /lock ve /unlock ---
 async def lock_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -166,16 +168,20 @@ async def delete_messages_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Yetkin yok")
         return
+    args = update.message.text.split()
+    if len(args) != 2:
+        await update.message.reply_text("❌ Kullanım: !sil 10")
+        return
     try:
-        count = int(update.message.text.split()[1])
-    except:
-        await update.message.reply_text("Kullanım: !sil 10")
+        count = int(args[1])
+    except ValueError:
+        await update.message.reply_text("❌ Kullanım: !sil 10")
         return
     for i in range(count):
         try:
             await context.bot.delete_message(update.effective_chat.id, update.message.message_id - i)
         except:
-            continue
+            pass
     await update.message.reply_text(f"🧹 {count} mesaj silindi!")
 
 # --- Mesaj filtreleme ---
@@ -191,7 +197,7 @@ app = ApplicationBuilder().token(TOKEN).build()
 
 # --- Handlerlar ---
 app.add_handler(CommandHandler("filter", add_filter))
-app.add_handler(CommandHandler("filters", list_filters))
+app.add_handler(CommandHandler("filtre", show_filters))
 app.add_handler(CommandHandler("remove", remove_filter))
 app.add_handler(CommandHandler("lock", lock_channel))
 app.add_handler(CommandHandler("unlock", unlock_channel))
@@ -199,8 +205,8 @@ app.add_handler(CommandHandler("ban", ban))
 app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
-app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
 app.add_handler(MessageHandler(tg_filters.TEXT & tg_filters.Regex(r"^!sil \d+$"), delete_messages_cmd))
+app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
 
 print("TostBot başlatılıyor...")
 app.run_polling()
