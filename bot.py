@@ -61,6 +61,35 @@ filters_dict = {
     "radissonbet": "shoort.in/radissonbet", "betsalvador": "shoort.in/betsalvador", "gobonus": "shoort.in/gobonus",
 }
 
+# --- /filtre komutu: tüm filtreleri göster ---
+async def list_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
+        return
+    if not filters_dict:
+        await update.message.reply_text("⚠️ Hiç filtre yok!")
+        return
+    mesaj = "📌 Filtreler:\n"
+    for key, value in filters_dict.items():
+        mesaj += f"- {key} → {value}\n"
+    await update.message.reply_text(mesaj)
+
+# --- /removefilter komutu: tek filtreyi sil ---
+async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
+        return
+    if not context.args:
+        await update.message.reply_text("❌ Kullanım: /removefilter <filtre_ismi>")
+        return
+    site_ismi = context.args[0].lower()
+    if site_ismi in filters_dict:
+        del filters_dict[site_ismi]
+        await update.message.reply_text(f"✅ {site_ismi} filtresi kaldırıldı!")
+    else:
+        await update.message.reply_text(f"❌ {site_ismi} adında bir filtre bulunamadı!")
+
+
 # --- Yönetici kontrolü ---
 async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -205,6 +234,10 @@ app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
 app.add_handler(CommandHandler("sil", delete_messages))
 app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
+app.add_handler(CommandHandler("filtre", list_filters))
+app.add_handler(CommandHandler("removefilter", remove_filter))
+
 
 print("Bot başlatılıyor...")
 app.run_polling()
+
