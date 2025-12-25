@@ -1,13 +1,13 @@
-import os
-from dotenv import load_dotenv
-from telegram import Update, ChatPermissions
+from telegram import Update, ChatPermissions, Bot
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters as tg_filters
+import os
+from dotenv import load_dotenv
 
 load_dotenv()  # .env dosyasını yükler
 TOKEN = os.environ.get("TOKEN")
 
-# --- Filtreler ve linkler ---
+# --- Site filtreleri ---
 filters_dict = {
     "mekanbahis": "urllink.me/mekanbahis", "betnosa": "urllink.me/betnosa", "babilbet": "urllink.me/babilbet",
     "casibom": "urllink.me/casibom", "lordpalace": "urllink.me/lordpalace", "betwinner": "urllink.me/betwinner",
@@ -78,32 +78,6 @@ async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     filters_dict[site_ismi] = site_linki
     await update.message.reply_text(f"✅ Filtre eklendi: {site_ismi} → {site_linki}")
 
-# --- /remove filters ---
-async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        await update.message.reply_text("❌ Bu komutu sadece yönetici kullanabilir!")
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Kullanım: /remove <site_ismi>")
-        return
-    site_ismi = context.args[0].lower()
-    if site_ismi in filters_dict:
-        del filters_dict[site_ismi]
-        await update.message.reply_text(f"✅ {site_ismi} filtresi kaldırıldı!")
-    else:
-        await update.message.reply_text("❌ Böyle bir filtre yok!")
-
-# --- /list filters ---
-async def list_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        await update.message.reply_text("❌ Bu komutu sadece yönetici kullanabilir!")
-        return
-    if not filters_dict:
-        await update.message.reply_text("🔹 Hiç filtre yok.")
-        return
-    text = "\n".join([f"{k} → {v}" for k, v in filters_dict.items()])
-    await update.message.reply_text(f"📜 Filtreler:\n{text}")
-
 # --- /lock ve /unlock ---
 async def lock_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
@@ -164,27 +138,22 @@ async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.restrict_chat_member(update.effective_chat.id, user.id, permissions=ChatPermissions(can_send_messages=True))
     await update.message.reply_text(f"🔊 {user.full_name} konuşabilir artık!")
 
-# --- /sil komutu (fixlenmiş) ---
-async def delete_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
+# --- !sil komutu ---
+async def delete_msgs(m: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(m, context):
+        await m.message.reply_text("❌ Yetkin yok")
         return
-
-    if not context.args or not context.args[0].isdigit():
-        await update.message.reply_text("❌ Kullanım: /sil <adet>")
+    try:
+        count = int(m.message.text.split()[1])
+    except:
+        await m.message.reply_text("Kullanım: !sil 10")
         return
-
-    count = int(context.args[0])
-    deleted = 0
-
-    async for msg in context.bot.get_chat_history(update.effective_chat.id, limit=count):
+    for i in range(count):
         try:
-            await msg.delete()
-            deleted += 1
+            await context.bot.delete_message(m.effective_chat.id, m.message.message_id - i)
         except:
             continue
-
-    await update.message.reply_text(f"🗑️ Son {deleted} mesaj silindi!", quote=False)
+    await m.message.reply_text(f"🧹 Son {count} mesaj silindi!")
 
 # --- Mesaj filtreleme ---
 async def check_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -193,21 +162,20 @@ async def check_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for key, value in filters_dict.items():
             if key in text:
                 await update.message.reply_text(value)
+        if text.startswith("!sil"):
+            await delete_msgs(update, context)
 
 # --- Bot başlat ---
 app = ApplicationBuilder().token(TOKEN).build()
 
 # --- Handlerlar ---
 app.add_handler(CommandHandler("filter", add_filter))
-app.add_handler(CommandHandler("remove", remove_filter))
-app.add_handler(CommandHandler("filters", list_filters))
 app.add_handler(CommandHandler("lock", lock_channel))
 app.add_handler(CommandHandler("unlock", unlock_channel))
 app.add_handler(CommandHandler("ban", ban))
 app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
-app.add_handler(CommandHandler("sil", delete_messages))
 app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
 
 print("Bot başlatılıyor...")
