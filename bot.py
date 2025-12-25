@@ -3,7 +3,13 @@ from telegram.constants import ChatMemberStatus
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters as tg_filters
 
 import os
-TOKEN = os.getenv("TOKEN")
+from dotenv import load_dotenv
+
+load_dotenv()
+TOKEN = os.environ.get("TOKEN")
+
+
+
 
 # --- Filtreler ---
 filters_dict = {
