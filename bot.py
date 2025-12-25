@@ -1,15 +1,11 @@
+import os
+from dotenv import load_dotenv
 from telegram import Update, ChatPermissions
 from telegram.constants import ChatMemberStatus
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters as tg_filters
 
-import os
-from dotenv import load_dotenv
-
 load_dotenv()
-TOKEN = os.environ.get("TOKEN")
-
-
-
+TOKEN = os.environ.get("TOKEN")  # .env dosyasındaki TOKEN alınır
 
 # --- Filtreler ---
 filters_dict = {
@@ -20,7 +16,7 @@ filters_dict = {
     "solobet": "urllink.me/solobet", "betorspin": "urllink.me/betorspin", "antikbet": "urllink.me/antikbet",
     "supertotobet": "urllink.me/supertotobet", "888starz": "urllink.me/888starz", "1king": "urllink.me/1king",
     "mariobet": "urllink.me/mariobet",
-    # Shoort.in linkleri (verdiğin tüm linkler)
+    # Shoort.in linkleri ve diğer tüm linkler
     "betkom": "shoort.in/betkom", "dodobet": "shoort.in/dodo", "xbahis": "shoort.in/xbahis",
     "mariobonus": "shoort.in/mariobonus", "tarafbet": "shoort.in/tarafbet", "egebet": "shoort.in/egebet",
     "goldenbahis": "shoort.in/goldenbahis", "betigma": "shoort.in/betigma", "nerobet": "shoort.in/nerobet",
@@ -61,35 +57,6 @@ filters_dict = {
     "radissonbet": "shoort.in/radissonbet", "betsalvador": "shoort.in/betsalvador", "gobonus": "shoort.in/gobonus",
 }
 
-# --- /filtre komutu: tüm filtreleri göster ---
-async def list_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
-        return
-    if not filters_dict:
-        await update.message.reply_text("⚠️ Hiç filtre yok!")
-        return
-    mesaj = "📌 Filtreler:\n"
-    for key, value in filters_dict.items():
-        mesaj += f"- {key} → {value}\n"
-    await update.message.reply_text(mesaj)
-
-# --- /removefilter komutu: tek filtreyi sil ---
-async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
-        return
-    if not context.args:
-        await update.message.reply_text("❌ Kullanım: /removefilter <filtre_ismi>")
-        return
-    site_ismi = context.args[0].lower()
-    if site_ismi in filters_dict:
-        del filters_dict[site_ismi]
-        await update.message.reply_text(f"✅ {site_ismi} filtresi kaldırıldı!")
-    else:
-        await update.message.reply_text(f"❌ {site_ismi} adında bir filtre bulunamadı!")
-
-
 # --- Yönetici kontrolü ---
 async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -98,7 +65,7 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         return False
 
-# --- /filter ---
+# --- /filter ekleme ---
 async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Bu komutu sadece yönetici kullanabilir!")
@@ -110,6 +77,34 @@ async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     site_linki = context.args[1]
     filters_dict[site_ismi] = site_linki
     await update.message.reply_text(f"✅ Filtre eklendi: {site_ismi} → {site_linki}")
+
+# --- /filtre komutu: filtreleri listeleme ---
+async def list_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
+        return
+    if not filters_dict:
+        await update.message.reply_text("⚠️ Hiç filtre yok.")
+        return
+    mesaj = "🔹 Mevcut filtreler:\n"
+    for key, value in filters_dict.items():
+        mesaj += f"{key} → {value}\n"
+    await update.message.reply_text(mesaj)
+
+# --- /removefilter komutu ---
+async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
+        return
+    if not context.args:
+        await update.message.reply_text("Kullanım: /removefilter <site_ismi>")
+        return
+    site_ismi = context.args[0].lower()
+    if site_ismi in filters_dict:
+        filters_dict.pop(site_ismi)
+        await update.message.reply_text(f"✅ {site_ismi} filtresi silindi!")
+    else:
+        await update.message.reply_text("❌ Böyle bir filtre yok.")
 
 # --- /lock ve /unlock ---
 async def lock_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -126,29 +121,17 @@ async def unlock_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.set_chat_permissions(update.effective_chat.id, permissions=ChatPermissions(can_send_messages=True))
     await update.message.reply_text("🔓 Kanal kilidi açıldı!")
 
-# --- Ban / Unban / Mute / Unmute ---
+# --- Ban / Unban / Mute / Unmute / Sil ---
 async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
-    user = None
-    if update.message.reply_to_message:
-        user = update.message.reply_to_message.from_user
-    elif context.args:
-        try:
-            user_id = int(context.args[0])
-            user = await context.bot.get_chat_member(update.effective_chat.id, user_id)
-        except:
-            await update.message.reply_text("❌ Geçersiz kullanıcı!")
-            return
-    if not user:
-        await update.message.reply_text("❌ Banlamak için birini yanıtlayın veya user_id girin!")
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❌ Ban için birini yanıtlayın!")
         return
-    try:
-        await context.bot.ban_chat_member(update.effective_chat.id, user.id)
-        await update.message.reply_text(f"🔨 {user.full_name} banlandı!")
-    except:
-        await update.message.reply_text("❌ Bu kullanıcıyı banlayamadım!")
+    user = update.message.reply_to_message.from_user
+    await context.bot.ban_chat_member(update.effective_chat.id, user.id)
+    await update.message.reply_text(f"🔨 {user.full_name} banlandı!")
 
 async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
@@ -157,46 +140,32 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("❌ Kullanım: /unban <user_id>")
         return
-    try:
-        user_id = int(context.args[0])
-        await context.bot.unban_chat_member(update.effective_chat.id, user_id)
-        await update.message.reply_text(f"✅ {user_id} banı kaldırıldı!")
-    except:
-        await update.message.reply_text("❌ Bu kullanıcıyı unbanlayamadım!")
+    user_id = int(context.args[0])
+    await context.bot.unban_chat_member(update.effective_chat.id, user_id)
+    await update.message.reply_text(f"✅ {user_id} banı kaldırıldı!")
 
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
-    user = None
-    if update.message.reply_to_message:
-        user = update.message.reply_to_message.from_user
-    if not user:
-        await update.message.reply_text("❌ Susturmak için birini yanıtlayın!")
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❌ Mute için birini yanıtlayın!")
         return
-    try:
-        await context.bot.restrict_chat_member(update.effective_chat.id, user.id, permissions=ChatPermissions(can_send_messages=False))
-        await update.message.reply_text(f"🔇 {user.full_name} susturuldu!")
-    except:
-        await update.message.reply_text("❌ Bu kullanıcıyı susturamadım!")
+    user = update.message.reply_to_message.from_user
+    await context.bot.restrict_chat_member(update.effective_chat.id, user.id, permissions=ChatPermissions(can_send_messages=False))
+    await update.message.reply_text(f"🔇 {user.full_name} susturuldu!")
 
 async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
-    user = None
-    if update.message.reply_to_message:
-        user = update.message.reply_to_message.from_user
-    if not user:
-        await update.message.reply_text("❌ Konuşturmak için birini yanıtlayın!")
+    if not update.message.reply_to_message:
+        await update.message.reply_text("❌ Unmute için birini yanıtlayın!")
         return
-    try:
-        await context.bot.restrict_chat_member(update.effective_chat.id, user.id, permissions=ChatPermissions(can_send_messages=True))
-        await update.message.reply_text(f"🔊 {user.full_name} artık konuşabilir!")
-    except:
-        await update.message.reply_text("❌ Bu kullanıcıyı konuşturamadım!")
+    user = update.message.reply_to_message.from_user
+    await context.bot.restrict_chat_member(update.effective_chat.id, user.id, permissions=ChatPermissions(can_send_messages=True))
+    await update.message.reply_text(f"🔊 {user.full_name} konuşabilir artık!")
 
-# --- /sil ---
 async def delete_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
@@ -226,6 +195,8 @@ app = ApplicationBuilder().token(TOKEN).build()
 
 # --- Handlerlar ---
 app.add_handler(CommandHandler("filter", add_filter))
+app.add_handler(CommandHandler("filtre", list_filters))
+app.add_handler(CommandHandler("removefilter", remove_filter))
 app.add_handler(CommandHandler("lock", lock_channel))
 app.add_handler(CommandHandler("unlock", unlock_channel))
 app.add_handler(CommandHandler("ban", ban))
@@ -234,10 +205,6 @@ app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
 app.add_handler(CommandHandler("sil", delete_messages))
 app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
-app.add_handler(CommandHandler("filtre", list_filters))
-app.add_handler(CommandHandler("removefilter", remove_filter))
-
 
 print("Bot başlatılıyor...")
 app.run_polling()
-
