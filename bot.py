@@ -1,10 +1,9 @@
 # bot.py
 import os
-from dotenv import load_dotenv
-
 import random
 import time
 from datetime import timedelta
+from dotenv import load_dotenv
 
 from telegram import (
     Update,
@@ -14,14 +13,13 @@ from telegram import (
 )
 
 from telegram.constants import ChatMemberStatus
+
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
     ContextTypes,
     filters as tg_filters
-   from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
 )
 
 KUFUR_LISTESI = [
@@ -582,6 +580,7 @@ app.add_handler(CallbackQueryHandler(cekilis_buton, pattern="^cekilise_katil$"))
 
 print("TostBot başlatılıyor...")
 app.run_polling()
+
 
 
 
