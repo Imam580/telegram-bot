@@ -42,7 +42,6 @@ cekilis_aktif = False
 cekilis_katilimcilar = set()
 cekilis_kazanan_sayisi = 1
 
-)
 
 # --- Ortam değişkenlerini yükle ---
 load_dotenv()
@@ -584,5 +583,6 @@ app.add_handler(CallbackQueryHandler(cekilis_buton, pattern="^cekilise_katil$"))
 
 print("TostBot başlatılıyor...")
 app.run_polling()
+
 
 
