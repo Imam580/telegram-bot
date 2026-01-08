@@ -20,6 +20,8 @@ from telegram.ext import (
     MessageHandler,
     ContextTypes,
     filters as tg_filters
+   from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 )
 
 KUFUR_LISTESI = [
@@ -519,9 +521,6 @@ async def bitir(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(msg, parse_mode="HTML")
 
-   from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
-
 async def cekilis_buton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -583,6 +582,7 @@ app.add_handler(CallbackQueryHandler(cekilis_buton, pattern="^cekilise_katil$"))
 
 print("TostBot başlatılıyor...")
 app.run_polling()
+
 
 
 
