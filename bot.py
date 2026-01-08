@@ -1,8 +1,34 @@
 import os
+import random
 from dotenv import load_dotenv
-from telegram import Update, ChatPermissions
+from telegram.helpers import mention_html
+
+from telegram import (
+    Update,
+    ChatPermissions,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup
+)
+
 from telegram.constants import ChatMemberStatus
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters as tg_filters
+
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+    filters as tg_filters
+)
+
+
+# ================== ÇEKİLİŞ GLOBAL ==================
+
+cekilis_aktif = False
+cekilis_katilimcilar = set()
+cekilis_kazanan_sayisi = 1
+cekilis_mesaj_id = None
+
 
 load_dotenv()
 TOKEN = os.environ.get("TOKEN")
@@ -171,10 +197,23 @@ async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Filtre eklendi: {site_ismi} → {site_linki}")
 
 # --- /filtre komutu ---
-async def show_filters(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         await update.message.reply_text("❌ Sadece yönetici kullanabilir!")
         return
+
+    if not context.args:
+        await update.message.reply_text("Kullanım: /remove <site_ismi>")
+        return
+
+    site_ismi = context.args[0].lower()
+
+    if site_ismi in filters_dict:
+        del filters_dict[site_ismi]
+        await update.message.reply_text(f"✅ {site_ismi} filtresi kaldırıldı!")
+    else:
+        await update.message.reply_text(f"❌ {site_ismi} filtresi bulunamadı!")
+
     if not filters_dict:
         await update.message.reply_text("❌ Filtre yok!")
         return
@@ -284,11 +323,132 @@ async def check_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for key, value in filters_dict.items():
             if key in text:
                 await update.message.reply_text(value)
+# -------- ÇEKİLİŞ BAŞLAT --------
+async def cekilis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_aktif, cekilis_katilimcilar
+
+    if not await is_admin(update, context):
+        return
+
+    cekilis_aktif = True
+    cekilis_katilimcilar.clear()
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎉 ÇEKİLİŞE KATIL", callback_data="cekilise_katil")]
+    ])
+
+    await update.message.reply_text(
+        "🎉 <b>ÇEKİLİŞ BAŞLADI!</b>\n\n"
+        "👇 Katılmak için butona bas\n\n"
+        "👥 Katılan: <b>0</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+
+# -------- KAZANAN SAYISI --------
+async def sayi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_kazanan_sayisi
+
+    if not await is_admin(update, context):
+        return
+
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("❌ Kullanım: /sayi 3")
+        return
+
+    cekilis_kazanan_sayisi = int(context.args[0])
+    await update.message.reply_text(f"✅ {cekilis_kazanan_sayisi} kazanan seçilecek")
+
+
+# -------- BUTON KATILIM --------
+async def cekilis_buton(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_katilimcilar
+
+    query = update.callback_query
+    await query.answer()
+
+    if not cekilis_aktif:
+        await query.answer("❌ Çekiliş aktif değil", show_alert=True)
+        return
+
+    user = query.from_user
+
+    if user.id in cekilis_katilimcilar:
+        await query.answer("⚠️ Zaten katıldın!", show_alert=True)
+        return
+
+    cekilis_katilimcilar.add(user.id)
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🎉 ÇEKİLİŞE KATIL", callback_data="cekilise_katil")]
+    ])
+
+    await query.edit_message_text(
+        f"🎉 <b>ÇEKİLİŞ BAŞLADI!</b>\n\n"
+        f"👇 Katılmak için butona bas\n\n"
+        f"👥 Katılan: <b>{len(cekilis_katilimcilar)}</b>",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
+
+    await query.answer("✅ Çekilişe katıldın!", show_alert=True)
+
+
+# -------- ÇEKİLİŞ BİTİR --------
+async def bitir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_aktif
+
+    if not await is_admin(update, context):
+        return
+
+    cekilis_aktif = False
+
+    if not cekilis_katilimcilar:
+        await update.message.reply_text("❌ Kimse katılmadı")
+        return
+
+    kazananlar = random.sample(
+        list(cekilis_katilimcilar),
+        min(cekilis_kazanan_sayisi, len(cekilis_katilimcilar))
+    )
+
+    msg = "🏆 <b>KAZANANLAR</b>\n\n"
+
+    for uid in kazananlar:
+        member = await context.bot.get_chat_member(update.effective_chat.id, uid)
+        user = member.user
+
+        if user.username:
+            msg += f"🎁 @{user.username}\n"
+        else:
+            msg += f"🎁 <a href='tg://user?id={user.id}'>{user.first_name}</a>\n"
+
+    msg += f"\n👥 Toplam Katılan: <b>{len(cekilis_katilimcilar)}</b>"
+
+    await update.message.reply_text(msg, parse_mode="HTML")
+
+    msg = "🏆 <b>KAZANANLAR</b>\n\n"
+
+    for user_id, username in kazananlar:
+        if username:
+            msg += f"🎁 @{username}\n"
+        else:
+            msg += f"🎁 {mention_html(user_id, 'Kazanan')}\n"
+
+    msg += f"\n👥 Toplam katılımcı: {len(cekilis_katilimcilar)}"
+
+    await update.message.reply_text(msg, parse_mode="HTML")
+
+
+
+
+
 
 # --- Bot başlat ---
 app = ApplicationBuilder().token(TOKEN).build()
 
-# --- Handlerlar ---
+# === KOMUTLAR ===
 app.add_handler(CommandHandler("filter", add_filter))
 app.add_handler(CommandHandler("filtre", show_filters))
 app.add_handler(CommandHandler("remove", remove_filter))
@@ -298,9 +458,24 @@ app.add_handler(CommandHandler("ban", ban))
 app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
-app.add_handler(MessageHandler(tg_filters.TEXT & tg_filters.Regex(r"^!sil \d+$"), delete_messages_cmd))
-app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
 
-print("TostBot başlatılıyor...")
-app.run_polling()
+# === ÇEKİLİŞ HANDLERLARI ===
+app.add_handler(CommandHandler("cekilis", cekilis))
+app.add_handler(CommandHandler("sayi", sayi))
+app.add_handler(CommandHandler("bitir", bitir))
+app.add_handler(CallbackQueryHandler(cekilis_buton, pattern="^cekilise_katil$"))
 
+# === !sil KOMUTU ===
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & tg_filters.Regex(r"^!sil \d+$"), delete_messages_cmd)
+)
+
+# === EN SON: NORMAL MESAJLAR ===
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message)
+)
+
+
+
+if __name__ == "__main__":
+    app.run_polling()
