@@ -9,6 +9,28 @@ from telegram.ext import (
     MessageHandler,
     ContextTypes,
     filters as tg_filters
+from datetime import timedelta
+
+KUFUR_LISTESI = [
+    "amk","aq","amq","amına","amina","anan","ananı",
+    "orospu","orospu çocuğu",
+    "piç","ibne",
+    "yarrak","yarak",
+    "sik","sikerim","siktir","sikeyim",
+    "göt","götveren","gavat",
+    "salak","aptal","gerizekalı","mal",
+    "pezevenk",
+    "it","puşt",
+    "amcık","amcik"
+]
+
+kufur_sayaci = {}      # user_id: adet
+spam_sayaci = {}       # user_id: adet
+
+cekilis_aktif = False
+cekilis_katilimcilar = set()
+cekilis_kazanan_sayisi = 1
+
 )
 
 # --- Ortam değişkenlerini yükle ---
@@ -275,6 +297,47 @@ async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(f"🔊 {user.full_name} konuşabilir artık!")
 
+   # --- Küfür Kontrol ---
+async def kufur_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+
+    if await is_admin(update, context):
+        return
+
+    text = update.message.text.lower()
+    uid = update.message.from_user.id
+
+    for kufur in KUFUR_LISTESI:
+        if kufur in text:
+            await update.message.delete()
+
+            kufur_sayaci[uid] = kufur_sayaci.get(uid, 0) + 1
+
+            if kufur_sayaci[uid] == 1:
+                await context.bot.restrict_chat_member(
+                    update.effective_chat.id,
+                    uid,
+                    permissions=ChatPermissions(can_send_messages=False),
+                    until_date=timedelta(minutes=5)
+                )
+                await update.effective_chat.send_message(
+                    "⚠️ Lütfen küfür kullanmayalım. 5 dakika susturuldunuz."
+                )
+
+            else:
+                await context.bot.restrict_chat_member(
+                    update.effective_chat.id,
+                    uid,
+                    permissions=ChatPermissions(can_send_messages=False),
+                    until_date=timedelta(hours=1)
+                )
+                await update.effective_chat.send_message(
+                    "❗ Küfür tekrarlandı. 1 saat susturuldunuz."
+                )
+            return
+
+
 # --- !sil komutu ---
 async def delete_messages_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
@@ -299,18 +362,198 @@ async def delete_messages_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
     await update.message.reply_text(f"🧹 {count} mesaj silindi!")
 
+   # --- Link Engeli ---
+async def link_engel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+
+    if await is_admin(update, context):
+        return
+
+    text = update.message.text.lower()
+
+    if "http://" in text or "https://" in text or "t.me/" in text:
+        await update.message.delete()
+
+        await context.bot.restrict_chat_member(
+            update.effective_chat.id,
+            update.message.from_user.id,
+            permissions=ChatPermissions(can_send_messages=False),
+            until_date=timedelta(hours=1)
+        )
+
+        await update.effective_chat.send_message(
+            "🔗 Grupta link paylaşımı yasaktır. 1 saat susturuldunuz."
+        )
+
+
+    # --- Spam Kontrol ---
+async def spam_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message:
+        return
+
+    if await is_admin(update, context):
+        return
+
+    uid = update.message.from_user.id
+    spam_sayaci[uid] = spam_sayaci.get(uid, 0) + 1
+
+    if spam_sayaci[uid] == 5:
+        await update.effective_chat.send_message(
+            "⚠️ Lütfen spam yapmayalım."
+        )
+
+    elif spam_sayaci[uid] >= 8:
+        await context.bot.restrict_chat_member(
+            update.effective_chat.id,
+            uid,
+            permissions=ChatPermissions(can_send_messages=False),
+            until_date=timedelta(hours=1)
+        )
+        await update.effective_chat.send_message(
+            "⛔ Spam nedeniyle 1 saat susturuldunuz."
+        )
+        spam_sayaci[uid] = 0
+
 # --- Mesaj filtreleme ---
+# --- Mesaj filtreleme (BUTONLU) ---
 async def check_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.text:
-        text = update.message.text.lower()
-        for key, value in filters_dict.items():
-            if key in text:
-                await update.message.reply_text(value)
+    if not update.message or not update.message.text:
+        return
+
+    text = update.message.text.lower()
+
+    for key, value in filters_dict.items():
+        if key in text:
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        f"🔗 {key.upper()} GİRİŞ",
+                        url=f"https://{value}"
+                    )
+                ]
+            ])
+
+            await update.message.reply_text(
+                f"✅ <b>{key.upper()} için giriş linki</b>",
+                reply_markup=keyboard,
+                parse_mode="HTML"
+            )
+            return
+
+
+    # 🔹 ÇEKİLİŞ TETİK
+    if cekilis_aktif:
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🎉 ÇEKİLİŞE KATIL", callback_data="cekilise_katil")]
+        ])
+        await update.message.reply_text(
+            "🎉 ÇEKİLİŞ BAŞLADI",
+            reply_markup=keyboard
+        )
+        return
+
+    # 🔹 FİLTRELER
+    for key, value in filters_dict.items():
+        if key in text:
+            await update.message.reply_text(value)
+            return
+
+   # --- /cekilis ---
+async def cekilis(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_aktif, cekilis_katilimcilar
+
+    if not await is_admin(update, context):
+        return
+
+    cekilis_aktif = True
+    cekilis_katilimcilar.clear()
+
+    await update.message.reply_text("🎉 ÇEKİLİŞ BAŞLADI")
+
+# --- /sayi ---
+async def sayi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_kazanan_sayisi
+
+    if not await is_admin(update, context):
+        return
+
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Kullanım: /sayi 3")
+        return
+
+    cekilis_kazanan_sayisi = int(context.args[0])
+    await update.message.reply_text(f"🎯 Kazanan sayısı: {cekilis_kazanan_sayisi}")
+
+# --- /bitir ---
+async def bitir(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global cekilis_aktif
+
+    if not await is_admin(update, context):
+        return
+
+    cekilis_aktif = False
+
+    if not cekilis_katilimcilar:
+        await update.message.reply_text("Katılım yok.")
+        return
+
+    kazananlar = random.sample(
+        list(cekilis_katilimcilar),
+        min(cekilis_kazanan_sayisi, len(cekilis_katilimcilar))
+    )
+
+    msg = "🏆 KAZANANLAR\n\n"
+    for uid in kazananlar:
+        msg += f"🎁 <a href='tg://user?id={uid}'>Kazanan</a>\n"
+
+    await update.message.reply_text(msg, parse_mode="HTML")
+
+   from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
+
+async def cekilis_buton(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if not cekilis_aktif:
+        await query.answer("Çekiliş aktif değil.", show_alert=True)
+        return
+
+    uid = query.from_user.id
+
+    if uid in cekilis_katilimcilar:
+        await query.answer("Zaten katıldın 🙂", show_alert=True)
+        return
+
+    cekilis_katilimcilar.add(uid)
+    await query.answer("Çekilişe katıldın 🎉", show_alert=True)
+
 
 # --- Bot Başlat ---
 app = ApplicationBuilder().token(TOKEN).build()
 
 # --- Handlerlar ---
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, kufur_kontrol),
+    group=1
+)
+
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, link_engel),
+    group=2
+)
+
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, spam_kontrol),
+    group=3
+)
+
+app.add_handler(
+    MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message)
+)
+
+
 app.add_handler(CommandHandler("filter", add_filter))
 app.add_handler(CommandHandler("filtre", show_filters))
 app.add_handler(CommandHandler("remove", remove_filter))
@@ -322,6 +565,12 @@ app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
 app.add_handler(MessageHandler(tg_filters.TEXT & tg_filters.Regex(r"^!sil \d+$"), delete_messages_cmd))
 app.add_handler(MessageHandler(tg_filters.TEXT & ~tg_filters.COMMAND, check_message))
+app.add_handler(CommandHandler("cekilis", cekilis))
+app.add_handler(CommandHandler("sayi", sayi))
+app.add_handler(CommandHandler("bitir", bitir))
+app.add_handler(CallbackQueryHandler(cekilis_buton, pattern="^cekilise_katil$"))
+
 
 print("TostBot başlatılıyor...")
 app.run_polling()
+
