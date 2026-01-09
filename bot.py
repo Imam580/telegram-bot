@@ -14,14 +14,16 @@ from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
-    CallbackQueryHandler,
     ContextTypes,
     filters
 )
 
 # ================= ENV =================
 load_dotenv()
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")  # 🔥 DÜZELTİLEN SATIR
+
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN environment variable is missing!")
 
 # ================= KÜFÜR =================
 KUFUR_LISTESI = [
@@ -54,15 +56,12 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     except:
         return False
 
-# ================= KÜFÜR (SADECE SİLER) =================
+# ================= KÜFÜR =================
 async def kufur_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
-
-    # 📢 Kanal postlarına dokunma
     if update.message.sender_chat:
         return
-
     if await is_admin(update, context):
         return
 
@@ -75,14 +74,12 @@ async def kufur_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
             return
 
-# ================= LINK ENGEL (KANAL POSTU SERBEST) =================
+# ================= LINK ENGEL =================
 async def link_engel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
-
     if update.message.sender_chat:
         return
-
     if await is_admin(update, context):
         return
 
@@ -97,10 +94,8 @@ async def link_engel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def spam_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
-
     if update.message.sender_chat:
         return
-
     if await is_admin(update, context):
         return
 
@@ -116,13 +111,12 @@ async def spam_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         spam_counter[uid] = 0
 
-# ================= SİTE FİLTRE (BUTONLU) =================
+# ================= SİTE FİLTRE =================
 async def site_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
     text = update.message.text.lower()
-
     for key, link in FILTERS.items():
         if key in text:
             kb = InlineKeyboardMarkup([
@@ -135,36 +129,29 @@ async def site_kontrol(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-# ================= /filter =================
+# ================= KOMUTLAR =================
 async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
-
     if len(context.args) < 2:
         await update.message.reply_text("/filter site link")
         return
-
     FILTERS[context.args[0].lower()] = context.args[1]
     await update.message.reply_text("✅ Filtre eklendi")
 
-# ================= /remove =================
 async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
-
     if not context.args:
         return
-
     FILTERS.pop(context.args[0].lower(), None)
     await update.message.reply_text("🗑️ Filtre kaldırıldı")
 
-# ================= BAN / UNBAN =================
 async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
     if not update.message.reply_to_message:
         return
-
     user = update.message.reply_to_message.from_user
     await context.bot.ban_chat_member(update.effective_chat.id, user.id)
 
@@ -173,19 +160,13 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not context.args:
         return
+    await context.bot.unban_chat_member(update.effective_chat.id, int(context.args[0]))
 
-    await context.bot.unban_chat_member(
-        update.effective_chat.id,
-        int(context.args[0])
-    )
-
-# ================= MUTE / UNMUTE =================
 async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
     if not update.message.reply_to_message:
         return
-
     user = update.message.reply_to_message.from_user
     await context.bot.restrict_chat_member(
         update.effective_chat.id,
@@ -198,7 +179,6 @@ async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not update.message.reply_to_message:
         return
-
     user = update.message.reply_to_message.from_user
     await context.bot.restrict_chat_member(
         update.effective_chat.id,
@@ -206,14 +186,10 @@ async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ChatPermissions(can_send_messages=True)
     )
 
-# ================= LOCK / UNLOCK =================
 async def lock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
-    await context.bot.set_chat_permissions(
-        update.effective_chat.id,
-        ChatPermissions()
-    )
+    await context.bot.set_chat_permissions(update.effective_chat.id, ChatPermissions())
 
 async def unlock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
@@ -223,7 +199,6 @@ async def unlock(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ChatPermissions(can_send_messages=True)
     )
 
-# ================= !sil =================
 async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await is_admin(update, context):
         return
@@ -231,7 +206,6 @@ async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
         n = int(update.message.text.split()[1])
     except:
         return
-
     for i in range(n):
         try:
             await context.bot.delete_message(
@@ -244,14 +218,12 @@ async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= BOT =================
 app = ApplicationBuilder().token(TOKEN).build()
 
-# MESSAGE HANDLERS (SIRA ÖNEMLİ)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, site_kontrol), group=0)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_kontrol), group=1)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_engel), group=2)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, spam_kontrol), group=3)
 app.add_handler(MessageHandler(filters.Regex(r"^!sil \d+$"), sil), group=4)
 
-# COMMANDS
 app.add_handler(CommandHandler("filter", add_filter))
 app.add_handler(CommandHandler("remove", remove_filter))
 app.add_handler(CommandHandler("ban", ban))
@@ -263,4 +235,3 @@ app.add_handler(CommandHandler("unlock", unlock))
 
 print("🔥 TOSTBOT AKTİF")
 app.run_polling()
-
