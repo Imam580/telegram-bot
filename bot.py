@@ -400,7 +400,7 @@ async def kufur_guard(update, context):
     if not update.message or not update.message.text:
         return
 
-    # SADECE !sil ile başlıyorsa çalış
+    # sadece !sil ile başlıyorsa çalış
     if not update.message.text.startswith("!sil"):
         return
 
@@ -411,6 +411,17 @@ async def kufur_guard(update, context):
     if len(parts) != 2 or not parts[1].isdigit():
         await update.message.reply_text("Kullanım: !sil 10")
         return
+
+    n = int(parts[1])
+
+    for i in range(n):
+        try:
+            await context.bot.delete_message(
+                update.effective_chat.id,
+                update.message.message_id - i
+            )
+        except:
+            pass
 
     n = int(parts[1])
 
@@ -694,6 +705,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
