@@ -26,21 +26,60 @@ TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     raise RuntimeError("TOKEN missing")
 
-KUFUR_LISTESI = [
+KISA_KUFURLER = [
     # kısa klasikler
     "amk", "aq", "amq", "mk",
     "oç", "oc",
 
+    # tek kelimelik ağır hakaretler
+    "piç", "pic",
+    "ibne",
+    "puşt", "pust",
+    "yavşak",
+    "gavat",
+    "pezevenk",
+    "şerefsiz",
+    "namussuz",
+    "kahpe",
+    "sürtük",
+    "gerzek",
+
+    # cinsel (tek kelime)
+    "sik",
+    "siktir",
+    "yarrak",
+    "yarak",
+    "amcık",
+    "amcik",
+    "göt",
+    "got",
+]
+import re
+
+KISA_REGEX = re.compile(
+    rf"(^|\s|[.!?,:;])({'|'.join(map(re.escape, KISA_KUFURLER))})(?=$|\s|[.!?,:;])",
+    re.IGNORECASE
+)
+
+UZUN_KUFURLER = [
     # anne üzerinden
-    "anan", "ananı", "anani",
-    "ananı sikeyim", "anani sikeyim",
-    "ananı sikiyim", "anani sikiyim",
-    "amına koyayım", "amina koyayim",
-    "amına koyim", "amina koyim",
-    "amına", "amina",
+    "anan",
+    "ananı",
+    "anani",
+    "ananı sikeyim",
+    "anani sikeyim",
+    "ananı sikiyim",
+    "anani sikiyim",
+    "amına koyayım",
+    "amina koyayim",
+    "amına koyim",
+    "amina koyim",
+    "amına",
+    "amina",
 
     # baba üzerinden
-    "babanı sikeyim", "babani sikeyim",
+    "babanı sikeyim",
+    "babani sikeyim",
 
     # orospu türevleri
     "orospu",
@@ -49,40 +88,19 @@ KUFUR_LISTESI = [
     "orospunun evladı",
     "orospunun çocuğu",
 
-    # cinsel
-    "sik",
+    # uzun cinsel ifadeler
     "sikerim",
     "sikeyim",
     "sikiyim",
-    "siktir",
     "siktir git",
-    "yarrak",
-    "yarak",
     "yarram",
     "yarrağım",
-    "amcık",
-    "amcik",
 
-    # aşağılayıcı / ağır hakaret
-    "piç", "pic",
-    "ibne",
-    "puşt", "pust",
-    "pezevenk",
-    "yavşak",
-    "gavat",
-    "şerefsiz",
+    # birleşik ağır hakaretler
     "şerefsiz herif",
-    "namussuz",
-    "haysiyetsiz",
-    "kahpe",
-    "sürtük",
-
-    # argo + hakaret arası (sık kullanılanlar)
-    "göt",
-    "got",
-    "götveren",
-    "gerzek",
     "mal oğlu mal",
+    "götveren",
+    "haysiyetsiz",
 ]
 
 # ================= LİNK LİSTELERİ =================
@@ -362,7 +380,16 @@ async def kufur_guard(update, context):
 
     text = update.message.text.lower()
 
-    for kufur in KUFUR_LISTESI:
+    # 1️⃣ Kısa küfürler (regex)
+    if KISA_REGEX.search(text):
+        await update.message.delete()
+        await update.effective_chat.send_message(
+            "⚠️ Lütfen küfür etmeyin."
+        )
+        return
+
+    # 2️⃣ Uzun / açık küfürler (ifade bazlı)
+    for kufur in UZUN_KUFURLER:
         if kufur in text:
             await update.message.delete()
             await update.effective_chat.send_message(
@@ -654,6 +681,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
