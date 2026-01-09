@@ -263,3 +263,4 @@ app.add_handler(CommandHandler("unlock", unlock))
 
 print("🔥 TOSTBOT AKTİF")
 app.run_polling()
+
