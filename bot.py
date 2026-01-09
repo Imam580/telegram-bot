@@ -173,11 +173,60 @@ SPONSORLAR = {
 EVERY_SITELER = {
     "HızlıCasino": "https://shoort.im/hizlicasino",
     "Egebet": "https://shoort.im/egebet",
+    "Kavbet": "https://shoort.im/kavbet",
+    "Pusulabet": "https://shoort.im/pusulabet",
+    "Hitbet": "https://shoort.im/hitbet",
+    "Artemisbet": "https://shoort.im/artemisbet",
+
+    "SosyalDavet": "https://linkturbo.co/sosyaldavet",
+    "MatGuncel": "http://dub.is/matguncel",
+    "JojoyaGit": "http://dub.pro/jojoyagit",
+    "HoliGuncel": "https://dub.pro/holiguncel",
+    "BetsmoveGuncel": "http://dub.is/betsmoveguncel",
+    "LunaSosyal": "http://lunalink.org/lunasosyal/",
+    "MegaGuncel": "https://dub.is/megaguncel",
+    "ZirveGuncel": "https://dub.is/zirveguncel",
+    "OdeonGuncel": "http://dub.is/odeonguncel",
+    "MaviGuncel": "http://dub.is/maviguncel",
+    "SosyalDavet2": "https://linkelit.co/sosyaldavet",
+
+    "Coinbar": "https://shoort.in/coinbar",
+    "NakitBahis": "https://shoort.in/nakitbahis",
 }
+
 
 DOGUM_SITELER = {
     "Zbahis": "https://shoort.im/zbahis",
     "Padisahbet": "https://shoort.im/padisahbet",
+    "Fixbet": "https://shoort.im/fixbet",
+    "Betmatik": "https://shoort.im/betmatik",
+    "Bayspinn": "https://shoort.im/bayspinn",
+    "Betoffice": "https://shoort.im/betoffice",
+    "Betinee": "https://shoort.im/betinee",
+    "Xslot": "https://shoort.im/xslot",
+    "Starzbet": "https://shoort.im/starzbet",
+    "Betpipo": "https://shoort.im/betpipo",
+    "Norabahis": "https://shoort.im/norabahis",
+    "Spinco": "https://shoort.im/spinco",
+
+    "HermesBet": "https://hermesbet.wiki/telegram",
+
+    "Cratosbet": "https://shoort.im/cratosbet",
+    "Betkom": "https://shoort.im/betkom",
+    "Masterbetting": "https://shoort.im/masterbetting",
+    "MarioBonus": "https://shoort.im/mariobonus",
+    "Betwild": "https://shoort.im/betwild",
+    "PashaGaming": "https://shoort.im/pashagaming",
+    "Royalbet": "https://shoort.im/royalbet",
+    "Radissonbet": "https://shoort.im/radissonbet",
+
+    "JojoyaGit": "https://dub.pro/jojoyagit",
+    "HoliGuncel": "http://t.t2m.io/holiguncel",
+
+    "Kavbet": "https://shoort.im/kavbet",
+    "Betgit": "https://shoort.im/betgit",
+    "Madridbet": "https://shoort.im/madridbet",
+    "Artemisbet": "https://shoort.im/artemisbet",
 }
 
 # ================= STATE =================
@@ -420,4 +469,5 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
