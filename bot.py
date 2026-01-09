@@ -243,6 +243,25 @@ async def is_admin(update, context):
     except:
         return False
 
+async def add_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
+
+    if len(context.args) < 2:
+        return await update.message.reply_text(
+            "Kullanım: /filter siteismi link"
+        )
+
+    site = context.args[0].lower()
+    link = context.args[1]
+
+    # shoort.in -> shoort.im güvenliği
+    if link.startswith("http://shoort.in/") or link.startswith("https://shoort.in/"):
+        link = link.replace("shoort.in", "shoort.im")
+
+    SPONSORLAR[site] = link
+    await update.message.reply_text(f"✅ **{site.upper()}** eklendi", parse_mode="Markdown")
+
 # ================= UNMUTE BUTONU =================
 def unmute_keyboard(user_id):
     return InlineKeyboardMarkup([
@@ -259,6 +278,24 @@ async def unmute_button(update, context):
     )
     await q.edit_message_text("🔊 Mute kaldırıldı")
 
+async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
+
+    if not context.args:
+        return await update.message.reply_text(
+            "Kullanım: /remove siteismi"
+        )
+
+    site = context.args[0].lower()
+
+    if site in SPONSORLAR:
+        SPONSORLAR.pop(site)
+        await update.message.reply_text(f"🗑️ **{site.upper()}** kaldırıldı", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ Site bulunamadı")
+
+
 # ================= GUARD: KÜFÜR =================
 async def kufur_guard(update, context):
     if not update.message or not update.message.text:
@@ -269,6 +306,25 @@ async def kufur_guard(update, context):
     if KUFUR_REGEX.search(update.message.text):
         await update.message.delete()
         await update.effective_chat.send_message("⚠️ Lütfen küfür etmeyin.")
+
+async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
+
+    try:
+        adet = int(update.message.text.split()[1])
+    except:
+        return await update.message.reply_text("Kullanım: !sil 10")
+
+    chat_id = update.effective_chat.id
+    msg_id = update.message.message_id
+
+    for i in range(adet + 1):
+        try:
+            await context.bot.delete_message(chat_id, msg_id - i)
+        except:
+            pass
+
 
 # ================= GUARD: SPAM =================
 async def spam_guard(update, context):
@@ -469,12 +525,16 @@ async def sponsor(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = ApplicationBuilder().token(TOKEN).build()
 
 # COMMANDS
+app.add_handler(CommandHandler("sponsor", sponsor))
+app.add_handler(CommandHandler("filter", add_filter))
+app.add_handler(CommandHandler("remove", remove_filter))
 app.add_handler(CommandHandler("ban", ban))
 app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
+
+# MESSAGE
 app.add_handler(MessageHandler(filters.Regex(r"^!sil \d+$"), sil))
-app.add_handler(CommandHandler("sponsor", sponsor))
 
 # CALLBACK
 app.add_handler(CallbackQueryHandler(unmute_button, pattern="^unmute:"))
@@ -490,6 +550,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
