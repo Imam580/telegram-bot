@@ -327,6 +327,10 @@ async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ================= GUARD: SPAM =================
+import time
+
+spam_tracker = {}
+
 async def spam_guard(update, context):
     if not update.message or update.message.sender_chat:
         return
@@ -334,23 +338,66 @@ async def spam_guard(update, context):
         return
 
     uid = update.message.from_user.id
-    spam_counter[uid] = spam_counter.get(uid, 0) + 1
+    now = time.time()
 
-    if spam_counter[uid] == 2:
+    # kullanıcının kayıtları
+    times = spam_tracker.get(uid, [])
+
+    # son 10 saniyedeki mesajlar
+    times = [t for t in times if now - t < 10]
+    times.append(now)
+    spam_tracker[uid] = times
+
+    # uyarılar
+    if len(times) == 3:
         await update.message.reply_text("⚠️ Spam yapmayın.")
-    elif spam_counter[uid] >= 3:
-        spam_counter[uid] = 0
-        await update.message.delete()
+    elif len(times) == 4:
+        await update.message.reply_text("⚠️ Son uyarı!")
+    elif len(times) >= 5:
+        spam_tracker.pop(uid, None)
         await context.bot.restrict_chat_member(
             update.effective_chat.id,
             uid,
             ChatPermissions(can_send_messages=False),
             until_date=timedelta(hours=1)
         )
-        await update.effective_chat.send_message(
-            "🔇 Spam nedeniyle 1 saat mute",
-            reply_markup=unmute_keyboard(uid)
+        await update.message.reply_text("🔇 Spam nedeniyle 1 saat mute.")
+        
+
+async def lock(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
+    await context.bot.set_chat_permissions(
+        update.effective_chat.id,
+        ChatPermissions()
+    )
+    await update.message.reply_text("🔒 Sohbet kilitlendi.")
+
+async def unlock(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context):
+        return
+    await context.bot.set_chat_permissions(
+        update.effective_chat.id,
+        ChatPermissions(
+            can_send_messages=True,
+            can_send_media_messages=True,
+            can_send_other_messages=True,
+            can_add_web_page_previews=True
         )
+    )
+    await update.message.reply_text("🔓 Sohbet açıldı.")
+
+def yatay_butonlar(data: dict, satir=2):
+    rows = []
+    row = []
+    for i, (name, link) in enumerate(data.items(), 1):
+        row.append(InlineKeyboardButton(name.upper(), url=link))
+        if i % satir == 0:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    return InlineKeyboardMarkup(rows)
 
 # ================= GUARD: LİNK =================
 async def link_guard(update, context):
@@ -421,18 +468,18 @@ async def site_kontrol(update, context):
 # ================= EVERY / DOĞUM =================
 async def every_kontrol(update, context):
     if update.message.text.lower() == "every":
-        buttons = [[InlineKeyboardButton(n, url=u)] for n, u in EVERY_SITELER.items()]
+        kb = yatay_butonlar(EVERY_SITELER, satir=2)
         await update.message.reply_text(
             "🔥 Every Siteler",
-            reply_markup=InlineKeyboardMarkup(buttons)
+            reply_markup=kb
         )
 
 async def dogum_kontrol(update, context):
     if update.message.text.lower() == "doğum":
-        buttons = [[InlineKeyboardButton(n, url=u)] for n, u in DOGUM_SITELER.items()]
+        kb = yatay_butonlar(DOGUM_SITELER, satir=2)
         await update.message.reply_text(
             "🎉 Doğum Günü Bonusları",
-            reply_markup=InlineKeyboardMarkup(buttons)
+            reply_markup=kb
         )
 
 # ================= KOMUTLAR =================
@@ -508,15 +555,11 @@ async def sponsor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not SPONSORLAR:
         return await update.message.reply_text("Sponsor bulunamadı.")
 
-    buttons = []
-    for name, link in SPONSORLAR.items():
-        buttons.append(
-            [InlineKeyboardButton(name.upper(), url=link)]
-        )
+    kb = yatay_butonlar(SPONSORLAR, satir=2)
 
     await update.message.reply_text(
         "🤝 **Sponsorlarımız**",
-        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_markup=kb,
         parse_mode="Markdown"
     )
 
@@ -532,6 +575,8 @@ app.add_handler(CommandHandler("ban", ban))
 app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
+app.add_handler(CommandHandler("lock", lock))
+app.add_handler(CommandHandler("unlock", unlock))
 
 # MESSAGE
 app.add_handler(MessageHandler(filters.Regex(r"^!sil \d+$"), sil))
@@ -550,6 +595,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
