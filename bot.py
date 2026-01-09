@@ -251,17 +251,16 @@ EVERY_SITELER = {
     "Hitbet": "https://shoort.im/hitbet",
     "Artemisbet": "https://shoort.im/artemisbet",
 
-    "SosyalDavet": "https://linkturbo.co/sosyaldavet",
-    "MatGuncel": "http://dub.is/matguncel",
-    "JojoyaGit": "http://dub.pro/jojoyagit",
-    "HoliGuncel": "https://dub.pro/holiguncel",
-    "BetsmoveGuncel": "http://dub.is/betsmoveguncel",
-    "LunaSosyal": "http://lunalink.org/lunasosyal/",
-    "MegaGuncel": "https://dub.is/megaguncel",
-    "ZirveGuncel": "https://dub.is/zirveguncel",
-    "OdeonGuncel": "http://dub.is/odeonguncel",
-    "MaviGuncel": "http://dub.is/maviguncel",
-    "SosyalDavet2": "https://linkelit.co/sosyaldavet",
+    "TurboSlot": "https://linkturbo.co/sosyaldavet",
+    "MatBet": "http://dub.is/matguncel",
+    "Jojobet": "http://dub.pro/jojoyagit",
+    "HoliganBet": "https://dub.pro/holiguncel",
+    "Betsmove": "http://dub.is/betsmoveguncel",
+    "LunaBet": "http://lunalink.org/lunasosyal/",
+    "Mega": "https://dub.is/megaguncel",
+    "Zirve": "https://dub.is/zirveguncel",
+    "Odeon": "http://dub.is/odeonguncel",
+    "Mavi": "http://dub.is/maviguncel",
 
     "Coinbar": "https://shoort.in/coinbar",
     "NakitBahis": "https://shoort.in/nakitbahis",
@@ -293,8 +292,8 @@ DOGUM_SITELER = {
     "Royalbet": "https://shoort.im/royalbet",
     "Radissonbet": "https://shoort.im/radissonbet",
 
-    "JojoyaGit": "https://dub.pro/jojoyagit",
-    "HoliGuncel": "http://t.t2m.io/holiguncel",
+    "JojoBet": "https://dub.pro/jojoyagit",
+    "HoliganBet": "http://t.t2m.io/holiguncel",
 
     "Kavbet": "https://shoort.im/kavbet",
     "Betgit": "https://shoort.im/betgit",
@@ -681,6 +680,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
