@@ -396,45 +396,6 @@ async def kufur_guard(update, context):
             )
             return
 
-   async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
-
-    # sadece !sil ile başlıyorsa çalış
-    if not update.message.text.startswith("!sil"):
-        return
-
-    if not await is_admin(update, context):
-        return
-
-    parts = update.message.text.split()
-    if len(parts) != 2 or not parts[1].isdigit():
-        await update.message.reply_text("Kullanım: !sil 10")
-        return
-
-    n = int(parts[1])
-
-    for i in range(n):
-        try:
-            await context.bot.delete_message(
-                update.effective_chat.id,
-                update.message.message_id - i
-            )
-        except:
-            pass
-
-    n = int(parts[1])
-
-    for i in range(n):
-        try:
-            await context.bot.delete_message(
-                update.effective_chat.id,
-                update.message.message_id - i
-            )
-        except:
-            pass
-
-
 
 # ================= GUARD: SPAM =================
 import time
@@ -705,6 +666,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
