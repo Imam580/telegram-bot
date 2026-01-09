@@ -445,6 +445,26 @@ async def sil(update, context):
         except:
             pass
 
+async def sponsor(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.sender_chat:
+        return
+
+    if not SPONSORLAR:
+        return await update.message.reply_text("Sponsor bulunamadı.")
+
+    buttons = []
+    for name, link in SPONSORLAR.items():
+        buttons.append(
+            [InlineKeyboardButton(name.upper(), url=link)]
+        )
+
+    await update.message.reply_text(
+        "🤝 **Sponsorlarımız**",
+        reply_markup=InlineKeyboardMarkup(buttons),
+        parse_mode="Markdown"
+    )
+
+
 # ================= APP =================
 app = ApplicationBuilder().token(TOKEN).build()
 
@@ -454,6 +474,7 @@ app.add_handler(CommandHandler("unban", unban))
 app.add_handler(CommandHandler("mute", mute))
 app.add_handler(CommandHandler("unmute", unmute))
 app.add_handler(MessageHandler(filters.Regex(r"^!sil \d+$"), sil))
+app.add_handler(CommandHandler("sponsor", sponsor))
 
 # CALLBACK
 app.add_handler(CallbackQueryHandler(unmute_button, pattern="^unmute:"))
@@ -469,5 +490,6 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
