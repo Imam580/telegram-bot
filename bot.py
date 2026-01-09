@@ -26,9 +26,64 @@ TOKEN = os.getenv("TOKEN")
 if not TOKEN:
     raise RuntimeError("TOKEN missing")
 
-# ================= KÜFÜR (NET KELİME) =================
-KUFUR_KELIMELERI = ["amk", "orospu", "piç", "ibne", "yarrak", "sik", "göt"]
-KUFUR_REGEX = re.compile(rf"\b({'|'.join(KUFUR_KELIMELERI)})\b", re.I)
+KUFUR_LISTESI = [
+    # kısa klasikler
+    "amk", "aq", "amq", "mk",
+    "oç", "oc",
+
+    # anne üzerinden
+    "anan", "ananı", "anani",
+    "ananı sikeyim", "anani sikeyim",
+    "ananı sikiyim", "anani sikiyim",
+    "amına koyayım", "amina koyayim",
+    "amına koyim", "amina koyim",
+    "amına", "amina",
+
+    # baba üzerinden
+    "babanı sikeyim", "babani sikeyim",
+
+    # orospu türevleri
+    "orospu",
+    "orospu evladı",
+    "orospu çocuğu",
+    "orospunun evladı",
+    "orospunun çocuğu",
+
+    # cinsel
+    "sik",
+    "sikerim",
+    "sikeyim",
+    "sikiyim",
+    "siktir",
+    "siktir git",
+    "yarrak",
+    "yarak",
+    "yarram",
+    "yarrağım",
+    "amcık",
+    "amcik",
+
+    # aşağılayıcı / ağır hakaret
+    "piç", "pic",
+    "ibne",
+    "puşt", "pust",
+    "pezevenk",
+    "yavşak",
+    "gavat",
+    "şerefsiz",
+    "şerefsiz herif",
+    "namussuz",
+    "haysiyetsiz",
+    "kahpe",
+    "sürtük",
+
+    # argo + hakaret arası (sık kullanılanlar)
+    "göt",
+    "got",
+    "götveren",
+    "gerzek",
+    "mal oğlu mal",
+]
 
 # ================= LİNK LİSTELERİ =================
 # 🔧 BURAYA AYNI FORMATTA EKLEYEREK ÇOĞALT
@@ -300,16 +355,20 @@ async def remove_filter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def kufur_guard(update, context):
     if not update.message or not update.message.text:
         return
-    if update.message.sender_chat or await is_admin(update, context):
+    if update.message.sender_chat:
+        return
+    if await is_admin(update, context):
         return
 
-    if KUFUR_REGEX.search(update.message.text):
-        await update.message.delete()
-        await update.effective_chat.send_message("⚠️ Lütfen küfür etmeyin.")
+    text = update.message.text.lower()
 
-async def sil(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update, context):
-        return
+    for kufur in KUFUR_LISTESI:
+        if kufur in text:
+            await update.message.delete()
+            await update.effective_chat.send_message(
+                "⚠️ Lütfen küfür etmeyin."
+            )
+            return
 
     try:
         adet = int(update.message.text.split()[1])
@@ -595,6 +654,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
