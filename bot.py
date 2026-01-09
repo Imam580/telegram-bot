@@ -492,33 +492,6 @@ async def link_guard(update, context):
             reply_markup=unmute_keyboard(uid)
         )
 
-# ================= GUARD: KANAL ETİKET =================
-async def kanal_etiket_guard(update, context):
-    if not update.message or update.message.sender_chat:
-        return
-    if await is_admin(update, context):
-        return
-
-    if not update.message.entities:
-        return
-
-    for ent in update.message.entities:
-        if ent.type == MessageEntityType.MENTION:
-            text = update.message.text[ent.offset: ent.offset + ent.length]
-            if text.lower().startswith("@"):
-                uid = update.message.from_user.id
-                await update.message.delete()
-                await context.bot.restrict_chat_member(
-                    update.effective_chat.id,
-                    uid,
-                    ChatPermissions(can_send_messages=False),
-                    until_date=timedelta(hours=1)
-                )
-                await update.effective_chat.send_message(
-                    "🔇 Kanal etiketi yasaktır",
-                    reply_markup=unmute_keyboard(uid)
-                )
-                return
 
 # ================= SİTE ADI ALGILAMA =================
 async def site_kontrol(update, context):
@@ -659,13 +632,13 @@ app.add_handler(CallbackQueryHandler(unmute_button, pattern="^unmute:"))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, site_kontrol), group=0)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, every_kontrol), group=1)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, dogum_kontrol), group=2)
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kanal_etiket_guard), group=3)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, link_guard), group=4)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, spam_guard), group=5)
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), group=6)
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
