@@ -241,6 +241,12 @@ SPONSORLAR = {
     "radissonbet": "https://shoort.im/radissonbet",
     "betsalvador": "https://shoort.im/betsalvador",
     "gobonus": "https://shoort.im/gobonus",
+     "HızlıCasino": "https://shoort.im/hizlicasino",
+    "Egebet": "https://shoort.im/egebet",
+    "Kavbet": "https://shoort.im/kavbet",
+    "Pusulabet": "https://shoort.im/pusulabet",
+    "Hitbet": "https://shoort.im/hitbet",
+    "Artemisbet": "https://shoort.im/artemisbet",
 }
 
 EVERY_SITELER = {
@@ -638,6 +644,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
