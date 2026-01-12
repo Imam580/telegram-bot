@@ -257,6 +257,8 @@ EVERY_SITELER = {
     "Hitbet": "https://shoort.im/hitbet",
     "Artemisbet": "https://shoort.im/artemisbet",
 
+    SPONSOR OLMAYAN SİTELER
+
     "TurboSlot": "https://linkturbo.co/sosyaldavet",
     "MatBet": "http://dub.is/matguncel",
     "Jojobet": "http://dub.pro/jojoyagit",
@@ -644,6 +646,7 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, kufur_guard), gr
 
 print("🔥 BOT AKTİF")
 app.run_polling(drop_pending_updates=True)
+
 
 
 
